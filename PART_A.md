@@ -1,131 +1,131 @@
-# Part A — Product Improvement Proposals
+# Part A — Coy Product Improvement Proposals
 
-**Product:** Coy  
-**Assignment:** Product Review and Feature Suggestions
+## Product Review
 
-## Introduction
+Coy is built around privacy-first, mutual-interest matching. Users can express interest in someone they know without immediately revealing their identity. A match is revealed only when interest is mutual.
 
-After reviewing Coy's core concept, I identified two potential improvements focused on user privacy and the experience of managing limited contact opportunities.
+Coy's existing product documentation describes privacy protections such as non-user opt-out and restrictions on contact slots. The following proposals are intended to **improve those existing protections**, rather than duplicate them.
 
-The proposed features aim to improve user trust, reduce unnecessary friction, and make the product more efficient without changing its fundamental purpose.
-
----
-
-## Feature 1: Privacy-Preserving Non-User Opt-Out
-
-### 1. Problem Statement
-
-Not everyone who receives a contact request through Coy will necessarily want to participate in the platform.
-
-A person who is not registered may prefer not to receive further requests. However, requiring that person to create an account just to express this preference would introduce unnecessary friction.
-
-There is also a privacy concern: an opt-out mechanism should not reveal whether a particular phone number or email address belongs to someone who has opted out.
-
-### 2. Proposed Solution
-
-Introduce a **privacy-preserving opt-out mechanism** that allows non-users to decline future Coy contact requests without creating an account.
-
-A recipient could access a secure opt-out link included in a legitimate contact notification and choose not to receive future requests.
-
-The system would record the preference securely and prevent future requests through the opted-out contact channel.
-
-### 3. User Flow
-
-1. A person receives a contact request notification through Coy.
-2. The notification includes a secure opt-out link.
-3. The recipient opens the link and sees a simple explanation of the opt-out option.
-4. The recipient confirms that they no longer want to receive contact requests.
-5. Coy records the preference and suppresses future requests to that contact destination.
-6. The sender receives a generic unavailable status without learning whether the recipient opted out.
-
-### 4. Technical Approach
-
-- Generate a short-lived, signed opt-out token associated with the intended contact destination.
-- Verify the token before accepting an opt-out request.
-- Store a keyed hash of the normalized contact identifier instead of retaining unnecessary plaintext personal information.
-- Check the suppression list before initiating new contact requests.
-- Use generic responses to prevent attackers from determining whether a contact identifier exists or has opted out.
-- Apply rate limiting, token expiration, and audit logging to reduce abuse.
-
-### 5. Expected Benefits
-
-**For recipients:** Greater control over unwanted contact and no need to register merely to opt out.
-
-**For existing users:** Clearer handling of unavailable contacts without exposing sensitive recipient preferences.
-
-**For Coy:** Stronger privacy practices, improved trust, and fewer unwanted contact attempts.
-
-### 6. Success Metrics
-
-- Reduction in repeated unwanted contact attempts.
-- Percentage of valid opt-out requests successfully processed.
-- Reduction in complaints related to unwanted contact.
-- Opt-out flow completion rate.
+These suggestions are based on the publicly documented product behavior and should be validated against the current application.
 
 ---
 
-## Feature 2: Automatic Slot Recovery
+## Feature 1: Privacy-Preserving Abuse Reporting and Repeat-Offender Detection
 
-### 1. Problem Statement
+### Problem
 
-If Coy limits the number of active contact requests or available slots, an unsuccessful request can consume a valuable opportunity.
+Coy's anonymous matching model protects users from the embarrassment of revealing one-sided interest. However, anonymity also creates a potential risk of unwanted or repeated contact.
 
-For example, a user might initiate a request to an invalid or permanently unreachable contact destination. If the system continues to reserve the slot despite confirmed delivery failure, the user may lose an opportunity without receiving any meaningful outcome.
+Coy already provides mechanisms for recipients to opt out and report unwanted contact. A useful next step would be to identify patterns of repeated misuse while protecting the identities of legitimate users.
 
-This can create frustration and make the product feel less predictable.
+For example, if multiple recipients independently report unwanted contact associated with the same account, the platform could identify that pattern for further review.
 
-### 2. Proposed Solution
+### Proposed Solution
 
-Introduce **automatic slot recovery** for contact requests that the system confirms are permanently undeliverable.
+Introduce an abuse-detection and review system that builds on Coy's existing reporting mechanisms.
 
-When Coy receives a reliable permanent delivery-failure status, the associated request can be closed and its occupied slot restored automatically.
+The system could:
 
-Temporary failures, pending requests, and recipient decisions should not trigger automatic recovery.
+- Accept structured reports of unwanted or inappropriate contact.
+- Detect repeated verified reports associated with the same account.
+- Apply rate limits or temporary restrictions when suspicious patterns occur.
+- Escalate serious or repeated incidents for human review.
+- Keep reporter identities and private crush information hidden from other users.
+- Provide an appeal process to reduce the impact of false reports.
 
-### 3. User Flow
+Detection should rely on verified signals and privacy-preserving internal records rather than exposing private contact lists.
 
-1. A user initiates a contact request, occupying an available slot.
-2. Coy attempts to deliver the request through the supported contact channel.
-3. The delivery provider reports a permanent delivery failure.
-4. Coy verifies the failure and marks the request as undeliverable.
-5. The occupied slot is automatically released.
-6. The user sees a neutral status message explaining that the request could not be delivered and the slot has been restored.
+### Why This Feature Is Required
 
-### 4. Technical Approach
+Trust is essential for a privacy-focused matching product.
 
-- Track request states such as `PENDING`, `DELIVERED`, `TEMPORARY_FAILURE`, and `PERMANENT_FAILURE`.
-- Integrate reliable delivery-status events from the supported messaging provider.
-- Recover slots only when a permanent failure is confirmed.
-- Use an atomic database transaction to update the request state and release the slot.
-- Make recovery operations idempotent so duplicate provider events cannot restore the same slot multiple times.
-- Maintain an audit trail for troubleshooting and operational monitoring.
+Even when individual messages can be blocked, a proactive abuse-prevention system could reduce repeated harassment and discourage misuse.
 
-### 5. Expected Benefits
+It would help Coy maintain its core promise: users should feel safe expressing interest without compromising another person's privacy or comfort.
 
-**For users:** Fewer wasted slots and a more predictable experience.
+### Expected Benefits
 
-**For Coy:** Better utilization of limited contact opportunities and fewer support requests related to failed deliveries.
+- Improved user trust and safety.
+- Faster identification of repeat abuse.
+- Reduced unwanted contact.
+- Stronger protection of Coy's anonymous matching experience.
 
-**For product reliability:** Clearer request states and consistent handling of permanent delivery failures.
+### Success Metrics
 
-### 6. Success Metrics
-
-- Number of slots recovered after confirmed permanent delivery failures.
-- Average time between failure confirmation and slot recovery.
-- Reduction in support requests related to unavailable slots.
-- Percentage of recovery events processed without duplication.
+- Reduction in repeat verified abuse reports.
+- Average time taken to resolve serious reports.
+- Percentage of reported cases resolved appropriately.
+- False-positive rate of automated restrictions.
 
 ---
 
-## Prioritization and Conclusion
+## Feature 2: Delivery Failure Transparency and Fair Slot Recovery
 
-I would prioritize **Feature 1: Privacy-Preserving Non-User Opt-Out** because consent and privacy are fundamental to building trust in a contact-based product.
+### Problem
 
-**Feature 2: Automatic Slot Recovery** would be the next priority because it improves the usability and reliability of limited contact opportunities.
+Coy limits the number of contacts users can add. These restrictions help discourage mass contact submissions and protect the privacy of the matching system.
 
-Together, these improvements address two important aspects of the product experience:
+However, a contact request may occasionally fail permanently because of an invalid address, an unreachable destination, or another confirmed delivery issue.
 
-- **Trust and control:** Respecting recipients' preferences without exposing private information.
-- **Efficiency and reliability:** Preventing permanently failed requests from unnecessarily consuming user capacity.
+If such a request consumes a limited slot without any possibility of delivery, users may feel that the slot has been wasted.
 
-Both proposals are intended as potential improvements and would require validation against Coy's existing functionality, delivery infrastructure, and product rules before implementation.
+At the same time, immediately returning slots after every delivery failure could enable repeated contact probing and weaken Coy's privacy protections.
+
+### Proposed Solution
+
+Introduce a carefully controlled slot-recovery process for confirmed permanent delivery failures.
+
+The system could:
+
+- Track delivery outcomes internally, distinguishing temporary failures from confirmed permanent failures.
+- Avoid recovering slots for temporary delivery problems.
+- Apply a cooldown before any eligible recovery.
+- Limit the number of recoveries allowed within a given period.
+- Ensure recovery actions are processed only once, even if delivery events are repeated.
+- Display generic delivery status messages without revealing whether a contact has joined Coy, opted out, or expressed interest.
+
+Recovery eligibility should be conservative and should not allow users to bypass Coy's existing slot-locking safeguards.
+
+### Why This Feature Is Required
+
+Limited contact slots are valuable to users.
+
+A fair recovery mechanism could improve the experience when a request genuinely cannot be delivered, while preserving the restrictions that protect Coy's anonymous matching model.
+
+This balances usability with privacy and abuse prevention.
+
+### Expected Benefits
+
+- Better use of limited contact slots.
+- Reduced frustration from confirmed delivery failures.
+- Improved transparency without exposing private information.
+- Continued protection against repeated contact probing.
+
+### Success Metrics
+
+- Number of verified permanent delivery failures.
+- Percentage of eligible slots successfully recovered.
+- Reduction in support requests related to unusable slots.
+- Rate of suspicious repeated recovery attempts.
+
+---
+
+## Feature Prioritization
+
+**Priority 1 — Privacy-Preserving Abuse Reporting and Repeat-Offender Detection**
+
+User trust and safety are fundamental to an anonymous matching platform. Strengthening protections against repeated misuse should take priority.
+
+**Priority 2 — Delivery Failure Transparency and Fair Slot Recovery**
+
+This could improve the user experience, but it requires careful safeguards to avoid undermining Coy's existing contact-slot restrictions.
+
+## Conclusion
+
+Both proposals aim to strengthen Coy's privacy-first product experience.
+
+The first focuses on protecting users from repeated misuse, while the second addresses fairness in limited contact-slot usage.
+
+Neither proposal requires exposing incoming likes, revealing who added whom, or weakening mutual-match privacy.
+
+The goal is to improve user trust and usability while preserving Coy's core promise of anonymous, mutual-interest matching.
